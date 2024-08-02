@@ -9,3 +9,4 @@ Sovelluksen ominaisuuksia ovat:
 - Käyttäjä voi poistaa ja lisätä elokuvia
 - Käyttäjä voi antaa avostelut ja kommentit elokuviin
 - Elokuvat voi listata esim. parhaimmasta arvostelusta huonoimpaan tai aakkoisjärjestyksessä
+- Käyttäjät voivat kommentoida jo valmiiseen arvosteluun
