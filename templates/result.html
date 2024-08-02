@@ -3,21 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <title>Search Results</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 </head>
 <body>
-    <h1>Search Results</h1>
-    {% if messages %}
-        <ul>
-        {% for message in messages %}
-            <li>
-                <strong>{{ message.name }}</strong> (Rating: {{ message.rating }}/5)
-                <p>{{ message.comment }}</p>
-            </li>
-        {% endfor %}
-        </ul>
-    {% else %}
-        <p>No results found</p>
-    {% endif %}
-    <a href="/">Back to home</a>
+    <div class="container">
+        <h1>Search Results</h1>
+        {% if messages %}
+            <ul>
+            {% for message in messages %}
+                <li>
+                    <strong>{{ message.name }}</strong> (Rating: {{ message.rating }}/5)
+                    <p>{{ message.comment }}</p>
+                </li>
+            {% endfor %}
+            </ul>
+        {% else %}
+            <p>No results found</p>
+        {% endif %}
+        <a href="/">Back to home</a>
+    </div>
 </body>
 </html>

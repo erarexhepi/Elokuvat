@@ -1,8 +1,9 @@
-from flask import Flask, redirect, render_template, request, session
+from flask import Flask, redirect, render_template, request, session, url_for
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import text
 from os import getenv
 from werkzeug.security import check_password_hash, generate_password_hash
+from datetime import datetime
 
 app = Flask(__name__)
 app.config["SQLALCHEMY_DATABASE_URI"] = "postgresql://rexera:MoiMoi123@localhost/sovellus"
@@ -32,11 +33,26 @@ def index():
     sql = text(f"SELECT id, name, rating, comment FROM movies WHERE visible=TRUE ORDER BY {sort_query}")
     result = db.session.execute(sql)
     movies = result.fetchall()
+
+    movies_with_comments = []
+    for movie in movies:
+        movie_comments_sql = text("SELECT C.content, U.username, C.created_at FROM comments C JOIN users U ON C.user_id=U.id WHERE C.movie_id=:movie_id ORDER BY C.created_at")
+        movie_comments_result = db.session.execute(movie_comments_sql, {"movie_id": movie.id})
+        comments = movie_comments_result.fetchall()
+        movie_with_comments = {
+            "id": movie.id,
+            "name": movie.name,
+            "rating": movie.rating,
+            "comment": movie.comment,
+            "comments": comments
+        }
+        movies_with_comments.append(movie_with_comments)
+
     visitor_sql = text("SELECT COUNT(*) FROM visitors")
     visitor_result = db.session.execute(visitor_sql)
     visitor_count = visitor_result.scalar()
 
-    return render_template("index.html", count=len(movies), movies=movies, sort_by=sort_by, visitor_count=visitor_count)
+    return render_template("index.html", count=len(movies_with_comments), movies=movies_with_comments, sort_by=sort_by, visitor_count=visitor_count)
 
 @app.route("/new")
 def new():
@@ -51,6 +67,28 @@ def send():
     db.session.execute(sql, {"name": name, "rating": rating, "comment": comment})
     db.session.commit()
     return redirect("/")
+
+@app.route("/comment/<int:movie_id>", methods=["POST"])
+def comment(movie_id):
+    if "username" not in session:
+        return redirect(url_for("index"))
+
+    content = request.form["content"]
+    username = session["username"]
+
+    user_sql = text("SELECT id FROM users WHERE username=:username")
+    user_result = db.session.execute(user_sql, {"username": username})
+    user = user_result.fetchone()
+    if not user:
+        return render_template("error.html", message="User not found")
+
+    user_id = user.id
+
+    sql = text("INSERT INTO comments (movie_id, user_id, content, created_at) VALUES (:movie_id, :user_id, :content, NOW())")
+    db.session.execute(sql, {"movie_id": movie_id, "user_id": user_id, "content": content})
+    db.session.commit()
+
+    return redirect(url_for("index"))
 
 @app.route("/login", methods=["POST"])
 def login():
@@ -110,6 +148,3 @@ def delete(id):
     db.session.execute(sql, {"id": id})
     db.session.commit()
     return redirect("/")
-
-if __name__ == "__main__":
-    app.run(debug=True)

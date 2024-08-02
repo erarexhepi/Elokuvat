@@ -3,50 +3,65 @@
 <head>
     <meta charset="UTF-8">
     <title>Movie List</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 </head>
 <body>
-    {% if session.username %}
-    <p>You are logged in as {{ session.username }}</p>
-    <form action="/result" method="GET">
-        Search: <input type="text" name="query">
-        <br>
-        <input type="submit" value="Submit">
-    </form>
-    <hr>
-    <h1>Movie List</h1>
-    <form method="GET" action="/">
-        Sort by: 
-        <select name="sort_by">
-            <option value="name_asc" {% if sort_by == 'name_asc' %}selected{% endif %}>Name (A-Z)</option>
-            <option value="rating_desc" {% if sort_by == 'rating_desc' %}selected{% endif %}>Rating (Best to Worst)</option>
-            <option value="rating_asc" {% if sort_by == 'rating_asc' %}selected{% endif %}>Rating (Worst to Best)</option>
-        </select>
-        <input type="submit" value="Sort">
-    </form>
-    <p>Number of movies: {{ count }}</p>
-    <hr>
-    {% for movie in movies %}
-    <p><strong>{{ movie.name }}</strong> (Rating: {{ movie.rating }}/5)</p>
-    <p>{{ movie.comment }}</p>
-    <a href="/delete/{{ movie.id }}">Delete</a>
-    <hr>
-    {% endfor %}
-    <a href="/new">Add a new movie</a>
-    <hr>
-    <a href="/logout">Log out</a>
-    {% else %}
-    <p>Welcome! You are visitor number {{ visitor_count }}.</p>
-    <form action="/login" method="POST">
-        <p>Username:<br>
-        <input type="text" name="username"></p>
-        <p>Password:<br>
-        <input type="password" name="password"></p>
-        <input type="submit" value="Log in">
-        <a href="/register">Create a new account</a>
-    </form>
-    {% if error %}
-    <p style="color: red;">{{ error }}</p>
-    {% endif %}
-    {% endif %}
+    <div class="container">
+        {% if session.username %}
+        <p>You are logged in as {{ session.username }}</p>
+        <form action="/result" method="GET">
+            Search: <input type="text" name="query">
+            <br>
+            <input type="submit" value="Search">
+        </form>
+        <hr>
+        <div class="header">
+            <h1>Movie List</h1>
+            <a href="/new">Add a new movie</a>
+        </div>
+        <form method="GET" action="/">
+            Sort by: 
+            <select name="sort_by">
+                <option value="name_asc" {% if sort_by == 'name_asc' %}selected{% endif %}>Name (A-Z)</option>
+                <option value="rating_desc" {% if sort_by == 'rating_desc' %}selected{% endif %}>Rating (Best to Worst)</option>
+                <option value="rating_asc" {% if sort_by == 'rating_asc' %}selected{% endif %}>Rating (Worst to Best)</option>
+            </select>
+            <input type="submit" value="Sort">
+        </form>
+        <p>Number of movies: {{ count }}</p>
+        <hr>
+        {% for movie in movies %}
+        <p><strong>{{ movie.name }}</strong> (Rating: {{ movie.rating }}/5)</p>
+        <p>{{ movie.comment }}</p>
+        <a href="/delete/{{ movie.id }}" class="delete-button">Delete</a>
+        <hr>
+        <h3>Comments:</h3>
+        {% for comment in movie.comments %}
+        <div class="comment">
+            <strong>{{ comment.username }}</strong> ({{ comment.created_at }}): {{ comment.content }}
+        </div>
+        {% endfor %}
+        <form action="/comment/{{ movie.id }}" method="POST">
+            <textarea name="content" rows="2" cols="40" placeholder="Add a comment"></textarea><br>
+            <input type="submit" value="Submit">
+        </form>
+        <hr>
+        {% endfor %}
+        <a href="/logout" class="logout-button">Log out</a>
+        {% else %}
+        <p>Welcome! You are visitor number {{ visitor_count }}.</p>
+        <form action="/login" method="POST">
+            <p>Username:<br>
+            <input type="text" name="username"></p>
+            <p>Password:<br>
+            <input type="password" name="password"></p>
+            <input type="submit" value="Log in">
+            <a href="/register">Create a new account</a>
+        </form>
+        {% if error %}
+        <p class="error">{{ error }}</p>
+        {% endif %}
+        {% endif %}
+    </div>
 </body>
 </html>

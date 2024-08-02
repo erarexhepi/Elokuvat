@@ -3,10 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <title>Error</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 </head>
 <body>
-    <h1>VIRHEEEEEEEEE</h1>
-    <p>{{ error }}</p>
-    <a href="/">Takasin</a>
+    <div class="container">
+        <h1>ERROOOOOORR</h1>
+        <p class="error">{{ message }}</p>
+        <a href="/">takasin</a>
+    </div>
 </body>
 </html>
