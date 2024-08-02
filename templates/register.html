@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>New user</title>
+</head>
+<body>
+    <form action="/add_user" method="POST">
+        <p>Username:<br>
+        <input type="text" name="username"></p>
+        <p>Password:<br>
+        <input type="password" name="password"></p>
+        <p>Password again:<br>
+        <input type="password" name="password_again"></p>        
+        <input type="submit" value="Create">
+    </form>
+    {% if error %}
+    <p style="color: red;">{{ error }}</p>
+    {% endif %}
+</body>
+</html>
