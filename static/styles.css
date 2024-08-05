@@ -42,35 +42,33 @@ input[type="text"], input[type="password"], input[type="number"], textarea, sele
     border-radius: 4px;
 }
 
-input[type="submit"] {
+input[type="submit"], .login-button {
     background: #444;
     color: white;
-    padding: 10px 20px;
+    padding: 15px 32px;
     border: none;
     border-radius: 4px;
     cursor: pointer;
     font-size: 16px;
-}
-
-input[type="submit"]:hover {
-    background: #555;
-}
-
-a.delete-button {
-    background: #d9534f;
-    color: white;
-    padding: 5px 10px;
-    text-decoration: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 14px;
+    text-align: center;
     display: inline-block;
 }
 
-a.delete-button:hover {
-    background: #c9302c;
+input[type="submit"]:hover, .login-button:hover {
+    background: #555;
 }
 
+.delete-link {
+    color: red;
+    text-decoration: none;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+.delete-link:hover {
+    text-decoration: underline;
+    color: darkred;
+}
 
 a {
     color: #13171f;
