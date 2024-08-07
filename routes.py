@@ -183,7 +183,7 @@ def login():
             if check_password_hash(hash_value, password):
                 session["username"] = username
                 session["user_id"] = user.id
-                session["csrf_token"] = os.urandom(16).hex()  # Set CSRF token on login
+                session["csrf_token"] = os.urandom(16).hex() 
                 return redirect("/")
             else:
                 error = 'Incorrect password.'
