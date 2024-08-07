@@ -11,11 +11,9 @@ from users import check_csrf
 def before_request():
     if "csrf_token" not in session:
         session["csrf_token"] = os.urandom(16).hex()
-
     if request.endpoint not in ['login', 'register']:
         if request.method == "POST":
             check_csrf()
-
     if request.endpoint == 'index':
         visitor_sql = text("INSERT INTO visitors DEFAULT VALUES")
         db.session.execute(visitor_sql)
@@ -190,7 +188,6 @@ def login():
                 return render_template("login.html", error=error)
     return render_template("login.html")
 
-
 @app.route("/logout")
 def logout():
     del session["username"]
@@ -208,6 +205,11 @@ def register():
             return render_template("register.html", error=error)
         if len(password) < 3:
             error = 'Password must be at least 3 characters long.'
+            return render_template("register.html", error=error)
+
+        existing_user = User.query.filter_by(username=username).first()
+        if existing_user:
+            error = 'Username already exists. Try another username.'
             return render_template("register.html", error=error)
 
         if password == password_again:
@@ -258,7 +260,6 @@ def view_favorites():
     user_sql = text("SELECT id FROM users WHERE username=:username")
     user_result = db.session.execute(user_sql, {"username": username})
     user = user_result.fetchone()
-
     if not user:
         return render_template("error.html", message="User not found")
 
