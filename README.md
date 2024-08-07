@@ -2,16 +2,16 @@
 
 Elokuvasovellus tarjoaa käyttäjälle mahdollisuuden tutustua erilaisiin elokuviin, lukea niistä arvioita ja antaa omia arvioitaan. Sovelluksen avulla käyttäjä voi löytää uusia elokuvia katseltavaksi, saada inspiraatiota ja suosituksia eri genreistä ja ajankohtaisista elokuvista.
 
-Sovelluksen ominaisuuksia ovat:
+Ominaisuudet käyttäjälle:
 
-- Käyttäjä voi kirjautua sisään ja ulos sekä luoda uuden tunnuksen
-- Käyttäjä voi selata eri elokuvia ja niiden arviointeja
-- Käyttäjä voi poistaa ja lisätä elokuvia
-- Käyttäjä voi antaa avostelut ja kommentit elokuviin
-- Käyttäjä voi lisätä elokuvan suosikkeihinsa esimerkiksi myöhemmäksi katsottavaksi. Elokuvat voi myös poistaa suosikeista.
-- Elokuvat voi listata esim. parhaimmasta arvostelusta huonoimpaan tai aakkoisjärjestyksessä
-- Käyttäjät voivat kommentoida jo valmiiseen arvosteluun sekä nähdä muiden kommentit
-- Käyttäjät voivat myös tykätä muiden kommenteista
+- Kirjautuminen sisään ja ulos sekä uuden tunnuksen luonti
+- Erilaisten elokuvien ja niiden arvioiden selaaminen
+- Elokuvien lisääminen ja poistaminen
+- Arvioiden ja kommenttien antaminen elokuville
+- Elokuvien lisääminen suosikkeihin tulevaa katselua varten ja niiden poistaminen suosikeista
+- Elokuvien lajittelu arvostelujen perusteella (parhaimmasta huonoimpaan), aakkosjärjestyksessä jne.
+- Kommentointi olemassa oleviin arvosteluihin ja muiden käyttäjien kommenttien näkeminen
+- Muiden käyttäjien kommenttien tykkääminen ja ei-tykkääminen
 
 Sovellus ei ole testattavissa Fly.iossa.
 
