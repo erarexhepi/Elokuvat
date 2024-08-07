@@ -8,8 +8,10 @@ Sovelluksen ominaisuuksia ovat:
 - Käyttäjä voi selata eri elokuvia ja niiden arviointeja
 - Käyttäjä voi poistaa ja lisätä elokuvia
 - Käyttäjä voi antaa avostelut ja kommentit elokuviin
+- Käyttäjä voi lisätä elokuvan suosikkeihinsa esimerkiksi myöhemmäksi katsottavaksi. Elokuvat voi myös poistaa suosikeista.
 - Elokuvat voi listata esim. parhaimmasta arvostelusta huonoimpaan tai aakkoisjärjestyksessä
 - Käyttäjät voivat kommentoida jo valmiiseen arvosteluun sekä nähdä muiden kommentit
+- Käyttäjät voivat myös tykätä muiden kommenteista
 
 Sovellus ei ole testattavissa Fly.iossa.
 
