@@ -12,7 +12,7 @@ class User(db.Model):
     username = db.Column(db.String(50), unique=True, nullable=False)
     password = db.Column(db.Text, nullable=False)
     comments = db.relationship('Comment', backref='user', lazy=True)
-    favorites = db.relationship('Favorite', backref='user_favorites', lazy=True)
+    favorites = db.relationship('Favorite', backref='user_favorites', lazy=True, overlaps="user_favorites, favorites")
     comment_votes = db.relationship('CommentVote', backref='user_votes', lazy=True)
 
 class Movie(db.Model):
@@ -23,7 +23,7 @@ class Movie(db.Model):
     comment = db.Column(db.Text, nullable=True)
     visible = db.Column(db.Boolean, default=True)
     comments = db.relationship('Comment', backref='movie', lazy=True)
-    favorites = db.relationship('Favorite', backref='movie_favorites', lazy=True)
+    favorites = db.relationship('Favorite', backref='movie_favorites', lazy=True, overlaps="movie_favorites, favorites")
 
 class Comment(db.Model):
     __tablename__ = 'comments'
@@ -38,8 +38,8 @@ class Favorite(db.Model):
     __tablename__ = 'favorites'
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), primary_key=True)
     movie_id = db.Column(db.Integer, db.ForeignKey('movies.id'), primary_key=True)
-    user = db.relationship('User', backref=db.backref('user_favorites', cascade='all, delete-orphan'))
-    movie = db.relationship('Movie', backref=db.backref('movie_favorites', cascade='all, delete-orphan'))
+    user = db.relationship('User', backref=db.backref('user_favorites', cascade='all, delete-orphan', overlaps="favorites, user_favorites"))
+    movie = db.relationship('Movie', backref=db.backref('movie_favorites', cascade='all, delete-orphan', overlaps="favorites, movie_favorites"))
 
 class CommentVote(db.Model):
     __tablename__ = 'comment_votes'

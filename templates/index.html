@@ -82,20 +82,6 @@
         <hr>
         {% endfor %}
         <a href="/logout" class="logout-button">Log out</a>
-        {% else %}
-        <p>Welcome! You are visitor number {{ visitor_count }}.</p>
-        <form action="/login" method="POST">
-            <p>Username:<br>
-            <input type="text" name="username"></p>
-            <p>Password:<br>
-            <input type="password" name="password"></p>
-            <input type="hidden" name="csrf_token" value="{{ session.csrf_token }}">
-            <input type="submit" value="Log in">
-            <a href="/register">Create a new account</a>
-        </form>
-        {% if error %}
-        <p class="error">{{ error }}</p>
-        {% endif %}
         {% endif %}
     </div>
 </body>

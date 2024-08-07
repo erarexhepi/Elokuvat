@@ -4,18 +4,33 @@
     <meta charset="UTF-8">
     <title>Add a New Movie</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <style>
+        .error { color: red; }
+        .success { color: green; }
+    </style>
 </head>
 <body>
     <div class="container">
         <h1>Add a New Movie</h1>
+        
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <ul>
+                {% for category, message in messages %}
+                    <li class="{{ category }}">{{ message }}</li>
+                {% endfor %}
+                </ul>
+            {% endif %}
+        {% endwith %}
+        
         <form action="/send" method="POST">
             <input type="hidden" name="csrf_token" value="{{ session.csrf_token }}">
             Movie Name: <br>
-            <input type="text" name="name" required><br><br>
+            <input type="text" name="name" required value="{{ request.form.name | default('') }}"><br><br>
             Rating (1-5): <br>
-            <input type="number" name="rating" min="1" max="5" step="0.1" required><br><br>
+            <input type="number" name="rating" min="1" max="5" step="0.1" required value="{{ request.form.rating | default('') }}"><br><br>
             Comment: <br>
-            <textarea name="comment" rows="3" cols="40"></textarea><br><br>
+            <textarea name="comment" rows="3" cols="40">{{ request.form.comment | default('') }}</textarea><br><br>
             <input type="submit" value="Submit">
         </form>
         <a href="/">Back to home</a>

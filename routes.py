@@ -72,7 +72,6 @@ def new():
     except Exception as e:
         print(f"Error occurred: {e}")
         return render_template("error.html", message="An error occurred while loading the page.")
-
 @app.route("/send", methods=["POST"])
 def send():
     check_csrf()
@@ -81,53 +80,36 @@ def send():
     comment = request.form["comment"].strip()
     
     if not name or not rating or not comment:
-        flash("All fields are required.")
+        flash("All fields are required.", "error")
         return redirect(url_for("new"))
 
     try:
         rating = float(rating)
         if rating < 1 or rating > 5:
-            flash("Rating must be between 1 and 5.")
+            flash("Rating must be between 1 and 5.", "error")
             return redirect(url_for("new"))
     except ValueError:
-        flash("Invalid rating.")
+        flash("Invalid rating.", "error")
         return redirect(url_for("new"))
 
     existing_movie = Movie.query.filter_by(name=name).first()
     if existing_movie:
-        flash("Movie already exists. You can interact with the existing movie.")
-        return redirect(url_for("index"))
+        if existing_movie.visible:
+            flash("Movie already exists. You can interact with the existing movie.", "error")
+            return redirect(url_for("new"))
+        else:
+            existing_movie.visible = True
+            existing_movie.rating = rating
+            existing_movie.comment = comment
+            db.session.commit()
+            flash("Movie re-added with new details.", "success")
+            return redirect(url_for("index"))
 
     movie = Movie(name=name, rating=rating, comment=comment, visible=True)
     db.session.add(movie)
     db.session.commit()
+    flash("Movie added successfully.", "success")
     return redirect("/")
-
-@app.route("/comment/<int:movie_id>", methods=["POST"])
-def comment(movie_id):
-    check_csrf()
-    if "username" not in session:
-        return redirect(url_for("index"))
-
-    content = request.form["content"].strip()
-    username = session["username"]
-
-    if not content:
-        return render_template("error.html", message="Comment cannot be empty")
-
-    user_sql = text("SELECT id FROM users WHERE username=:username")
-    user_result = db.session.execute(user_sql, {"username": username})
-    user = user_result.fetchone()
-    if not user:
-        return render_template("error.html", message="User not found")
-
-    user_id = user.id
-
-    sql = text("INSERT INTO comments (movie_id, user_id, content, created_at) VALUES (:movie_id, :user_id, :content, NOW())")
-    db.session.execute(sql, {"movie_id": movie_id, "user_id": user_id, "content": content})
-    db.session.commit()
-
-    return redirect(url_for("index"))
 
 @app.route("/delete_comment/<int:comment_id>", methods=["POST"])
 def delete_comment(comment_id):
@@ -165,17 +147,17 @@ def login():
 
         if len(username) < 3:
             error = 'Username must be at least 3 characters long.'
-            return render_template("login.html", error=error)
+            return render_template("login.html", error=error, visitor_count=get_visitor_count())
         if len(password) < 3:
             error = 'Password must be at least 3 characters long.'
-            return render_template("login.html", error=error)
+            return render_template("login.html", error=error, visitor_count=get_visitor_count())
 
         sql = text("SELECT id, password FROM users WHERE username=:username")
         result = db.session.execute(sql, {"username": username})
         user = result.fetchone()
         if not user:
             error = "Incorrect username."
-            return render_template("login.html", error=error)
+            return render_template("login.html", error=error, visitor_count=get_visitor_count())
         else:
             hash_value = user.password
             if check_password_hash(hash_value, password):
@@ -185,8 +167,13 @@ def login():
                 return redirect("/")
             else:
                 error = 'Incorrect password.'
-                return render_template("login.html", error=error)
-    return render_template("login.html")
+                return render_template("login.html", error=error, visitor_count=get_visitor_count())
+    return render_template("login.html", visitor_count=get_visitor_count())
+
+def get_visitor_count():
+    visitor_sql = text("SELECT COUNT(*) FROM visitors")
+    visitor_result = db.session.execute(visitor_sql)
+    return visitor_result.scalar()
 
 @app.route("/logout")
 def logout():
@@ -320,6 +307,32 @@ def remove_favorite(movie_id):
         db.session.commit()
 
     return redirect(url_for("view_favorites"))
+
+@app.route("/comment/<int:movie_id>", methods=["POST"])
+def comment(movie_id):
+    check_csrf()
+    if "username" not in session:
+        return redirect(url_for("index"))
+
+    content = request.form["content"].strip()
+    username = session["username"]
+
+    if not content:
+        return render_template("error.html", message="Comment cannot be empty")
+
+    user_sql = text("SELECT id FROM users WHERE username=:username")
+    user_result = db.session.execute(user_sql, {"username": username})
+    user = user_result.fetchone()
+    if not user:
+        return render_template("error.html", message="User not found")
+
+    user_id = user.id
+
+    sql = text("INSERT INTO comments (movie_id, user_id, content, created_at) VALUES (:movie_id, :user_id, :content, NOW())")
+    db.session.execute(sql, {"movie_id": movie_id, "user_id": user_id, "content": content})
+    db.session.commit()
+
+    return redirect(url_for("index"))
 
 @app.route("/comment/vote/<int:comment_id>/<vote_type>", methods=["POST"])
 def vote_comment(comment_id, vote_type):

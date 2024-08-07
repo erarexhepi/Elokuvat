@@ -8,6 +8,7 @@
 <body>
     <div class="container">
         <h1>Login</h1>
+        <p>Welcome! You are visitor number {{ visitor_count }}.</p>
         <form method="post" action="{{ url_for('login') }}">
             <input type="hidden" name="csrf_token" value="{{ session.csrf_token }}">
             <label for="username">Username</label>
