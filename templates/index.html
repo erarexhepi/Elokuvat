@@ -7,6 +7,16 @@
 </head>
 <body>
     <div class="container">
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                <ul class="flashes">
+                {% for message in messages %}
+                    <li>{{ message }}</li>
+                {% endfor %}
+                </ul>
+            {% endif %}
+        {% endwith %}
+        
         {% if session.username %}
         <p>You are logged in as {{ session.username }}</p>
         <form action="{{ url_for('result') }}" method="GET">
@@ -35,9 +45,11 @@
         <p><strong>{{ movie.name }}</strong> (Rating: {{ movie.rating }}/5)</p>
         <p>{{ movie.comment }}</p>
         <form action="{{ url_for('delete', id=movie.id) }}" method="POST" style="display: inline;">
+            <input type="hidden" name="csrf_token" value="{{ session.csrf_token }}">
             <button type="submit" class="delete-link">Delete</button>
         </form>
         <form action="{{ url_for('add_favorite', movie_id=movie.id) }}" method="POST" style="display: inline;">
+            <input type="hidden" name="csrf_token" value="{{ session.csrf_token }}">
             <button type="submit" class="delete-link">Add to Favorites</button>
         </form>
         <hr>
@@ -46,20 +58,24 @@
         <div class="comment">
             <strong>{{ comment.username }}</strong> ({{ comment.created_at }}): {{ comment.content }}
             <form action="{{ url_for('vote_comment', comment_id=comment.id, vote_type='like') }}" method="POST" style="display: inline;">
+                <input type="hidden" name="csrf_token" value="{{ session.csrf_token }}">
                 <button type="submit">Like</button>
             </form>
             <form action="{{ url_for('vote_comment', comment_id=comment.id, vote_type='dislike') }}" method="POST" style="display: inline;">
+                <input type="hidden" name="csrf_token" value="{{ session.csrf_token }}">
                 <button type="submit">Dislike</button>
             </form>
             <p>Likes: {{ comment.likes }} Dislikes: {{ comment.dislikes }}</p>
             {% if comment.username == session.username %}
                 <form action="{{ url_for('delete_comment', comment_id=comment.id) }}" method="POST" style="display: inline;">
+                    <input type="hidden" name="csrf_token" value="{{ session.csrf_token }}">
                     <button type="submit" class="delete-link">Delete</button>
                 </form>
             {% endif %}
         </div>
         {% endfor %}
         <form action="/comment/{{ movie.id }}" method="POST">
+            <input type="hidden" name="csrf_token" value="{{ session.csrf_token }}">
             <textarea name="content" rows="2" cols="40" placeholder="Add a comment"></textarea><br>
             <input type="submit" value="Submit">
         </form>
@@ -73,6 +89,7 @@
             <input type="text" name="username"></p>
             <p>Password:<br>
             <input type="password" name="password"></p>
+            <input type="hidden" name="csrf_token" value="{{ session.csrf_token }}">
             <input type="submit" value="Log in">
             <a href="/register">Create a new account</a>
         </form>

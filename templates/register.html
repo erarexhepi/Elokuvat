@@ -9,6 +9,7 @@
     <div class="container">
         <h1>Create a New Account</h1>
         <form action="{{ url_for('register') }}" method="POST">
+            <input type="hidden" name="csrf_token" value="{{ session.csrf_token }}">
             <p>Username:<br>
             <input type="text" name="username"></p>
             <p>Password:<br>

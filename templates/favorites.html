@@ -15,6 +15,7 @@
                     <strong>{{ movie.name }}</strong> (Rating: {{ movie.rating }}/5)
                     <p>{{ movie.comment }}</p>
                     <form action="{{ url_for('remove_favorite', movie_id=movie.id) }}" method="POST" style="display:inline;">
+                        <input type="hidden" name="csrf_token" value="{{ session.csrf_token }}">
                         <button type="submit" class="delete-link">Remove from Favorites</button>
                     </form>
                 </li>

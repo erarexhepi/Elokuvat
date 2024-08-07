@@ -1,5 +1,5 @@
 from datetime import datetime
-from app import db
+from db import db
 
 class Visitor(db.Model):
     __tablename__ = 'visitors'
@@ -46,6 +46,6 @@ class CommentVote(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     comment_id = db.Column(db.Integer, db.ForeignKey('comments.id'), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    vote_type = db.Column(db.Boolean, nullable=False)  # True for like, False for dislike
+    vote_type = db.Column(db.Boolean, nullable=False) 
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     __table_args__ = (db.UniqueConstraint('comment_id', 'user_id', name='comment_user_unique'),)

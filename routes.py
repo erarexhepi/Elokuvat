@@ -1,27 +1,32 @@
-from flask import render_template, request, redirect, session, url_for
+import os
+from app import app
+from flask import render_template, request, redirect, session, url_for, flash
 from sqlalchemy import text
-from app import app, db
+from db import db
 from models import Movie, Comment, User, Visitor, Favorite, CommentVote
 from werkzeug.security import check_password_hash, generate_password_hash
-
-@app.before_request
-def create_tables():
-    if not hasattr(app, 'tables_created'):
-        db.create_all()
-        app.tables_created = True
+from users import check_csrf
 
 @app.before_request
 def before_request():
+    if "csrf_token" not in session:
+        session["csrf_token"] = os.urandom(16).hex()
+
+    if request.endpoint not in ['login', 'register']:
+        if request.method == "POST":
+            check_csrf()
+
     if request.endpoint == 'index':
         visitor_sql = text("INSERT INTO visitors DEFAULT VALUES")
         db.session.execute(visitor_sql)
         db.session.commit()
+
 @app.route("/")
 def index():
     if "username" not in session:
         return redirect(url_for("login"))
 
-    sort_by = request.args.get("sort_by", "name_asc")  # A-Z
+    sort_by = request.args.get("sort_by", "name_asc")
     sort_query = "name ASC"
     if sort_by == "rating_desc":
         sort_query = "rating DESC"
@@ -62,7 +67,6 @@ def index():
 
     return render_template("index.html", count=len(movies_with_comments), movies=movies_with_comments, sort_by=sort_by, visitor_count=visitor_count)
 
-
 @app.route("/new")
 def new():
     try:
@@ -73,9 +77,29 @@ def new():
 
 @app.route("/send", methods=["POST"])
 def send():
-    name = request.form["name"]
+    check_csrf()
+    name = request.form["name"].strip()
     rating = request.form["rating"]
-    comment = request.form["comment"]
+    comment = request.form["comment"].strip()
+    
+    if not name or not rating or not comment:
+        flash("All fields are required.")
+        return redirect(url_for("new"))
+
+    try:
+        rating = float(rating)
+        if rating < 1 or rating > 5:
+            flash("Rating must be between 1 and 5.")
+            return redirect(url_for("new"))
+    except ValueError:
+        flash("Invalid rating.")
+        return redirect(url_for("new"))
+
+    existing_movie = Movie.query.filter_by(name=name).first()
+    if existing_movie:
+        flash("Movie already exists. You can interact with the existing movie.")
+        return redirect(url_for("index"))
+
     movie = Movie(name=name, rating=rating, comment=comment, visible=True)
     db.session.add(movie)
     db.session.commit()
@@ -83,11 +107,15 @@ def send():
 
 @app.route("/comment/<int:movie_id>", methods=["POST"])
 def comment(movie_id):
+    check_csrf()
     if "username" not in session:
         return redirect(url_for("index"))
 
-    content = request.form["content"]
+    content = request.form["content"].strip()
     username = session["username"]
+
+    if not content:
+        return render_template("error.html", message="Comment cannot be empty")
 
     user_sql = text("SELECT id FROM users WHERE username=:username")
     user_result = db.session.execute(user_sql, {"username": username})
@@ -105,6 +133,7 @@ def comment(movie_id):
 
 @app.route("/delete_comment/<int:comment_id>", methods=["POST"])
 def delete_comment(comment_id):
+    check_csrf()
     if "username" not in session:
         return redirect(url_for("index"))
 
@@ -133,8 +162,15 @@ def delete_comment(comment_id):
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
-        username = request.form["username"]
+        username = request.form["username"].strip()
         password = request.form["password"]
+
+        if len(username) < 3:
+            error = 'Username must be at least 3 characters long.'
+            return render_template("login.html", error=error)
+        if len(password) < 3:
+            error = 'Password must be at least 3 characters long.'
+            return render_template("login.html", error=error)
 
         sql = text("SELECT id, password FROM users WHERE username=:username")
         result = db.session.execute(sql, {"username": username})
@@ -146,12 +182,14 @@ def login():
             hash_value = user.password
             if check_password_hash(hash_value, password):
                 session["username"] = username
-                session["user_id"] = user.id  #
+                session["user_id"] = user.id
+                session["csrf_token"] = os.urandom(16).hex()  # Set CSRF token on login
                 return redirect("/")
             else:
                 error = 'Incorrect password.'
                 return render_template("login.html", error=error)
     return render_template("login.html")
+
 
 @app.route("/logout")
 def logout():
@@ -161,9 +199,17 @@ def logout():
 @app.route("/register", methods=["GET", "POST"])
 def register():
     if request.method == "POST":
-        username = request.form["username"]
+        username = request.form["username"].strip()
         password = request.form["password"]
         password_again = request.form["password_again"]
+
+        if len(username) < 3:
+            error = 'Username must be at least 3 characters long.'
+            return render_template("register.html", error=error)
+        if len(password) < 3:
+            error = 'Password must be at least 3 characters long.'
+            return render_template("register.html", error=error)
+
         if password == password_again:
             hash_value = generate_password_hash(password)
             sql = text("INSERT INTO users (username, password) VALUES (:username, :password)")
@@ -181,7 +227,6 @@ def delete(id):
     db.session.execute(sql, {"id": id})
     db.session.commit()
     return redirect("/")
-
 
 @app.route("/result", methods=["GET"])
 def result():
@@ -203,6 +248,7 @@ def result():
         })
 
     return render_template("result.html", messages=messages)
+
 @app.route("/favorites", methods=["GET"])
 def view_favorites():
     if "username" not in session:
@@ -230,32 +276,27 @@ def view_favorites():
 
 @app.route("/add_favorite/<int:movie_id>", methods=["POST"])
 def add_favorite(movie_id):
-    try:
-        if "username" not in session:
-            return redirect(url_for("login"))
+    if "username" not in session:
+        return redirect(url_for("login"))
 
-        username = session["username"]
-        user_sql = text("SELECT id FROM users WHERE username=:username")
-        user_result = db.session.execute(user_sql, {"username": username})
-        user = user_result.fetchone()
+    username = session["username"]
+    user_sql = text("SELECT id FROM users WHERE username=:username")
+    user_result = db.session.execute(user_sql, {"username": username})
+    user = user_result.fetchone()
 
-        if not user:
-            return render_template("error.html", message="User not found")
+    if not user:
+        return render_template("error.html", message="User not found")
 
-        user_id = user.id
-        existing_favorite = Favorite.query.filter_by(user_id=user_id, movie_id=movie_id).first()
-        if existing_favorite:
-            return render_template("error.html", message="Favorite already exists")
+    user_id = user.id
+    existing_favorite = Favorite.query.filter_by(user_id=user_id, movie_id=movie_id).first()
+    if existing_favorite:
+        return render_template("error.html", message="Favorite already exists")
 
-        favorite = Favorite(user_id=user_id, movie_id=movie_id)
-        db.session.add(favorite)
-        db.session.commit()
+    favorite = Favorite(user_id=user_id, movie_id=movie_id)
+    db.session.add(favorite)
+    db.session.commit()
 
-        return redirect(url_for("view_favorites"))
-    except Exception as e:
-        print(f"Error occurred while adding favorite: {e}")
-        return render_template("error.html", message=f"An error occurred while adding the favorite: {e}")
-
+    return redirect(url_for("view_favorites"))
 
 @app.route("/remove_favorite/<int:movie_id>", methods=["POST"])
 def remove_favorite(movie_id):
@@ -287,6 +328,13 @@ def vote_comment(comment_id, vote_type):
     user_id = session.get("user_id")
     vote_type = True if vote_type == "like" else False
 
-    print(f"User ID: {user_id}, Comment ID: {comment_id}, Vote Type: {vote_type}")
+    existing_vote = CommentVote.query.filter_by(comment_id=comment_id, user_id=user_id).first()
+    if existing_vote:
+        existing_vote.vote_type = vote_type
+        db.session.commit()
+    else:
+        vote = CommentVote(comment_id=comment_id, user_id=user_id, vote_type=vote_type)
+        db.session.add(vote)
+        db.session.commit()
 
     return redirect(url_for("index"))
