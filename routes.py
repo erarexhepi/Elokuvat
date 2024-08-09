@@ -18,7 +18,6 @@ def before_request():
         visitor_sql = text("INSERT INTO visitors DEFAULT VALUES")
         db.session.execute(visitor_sql)
         db.session.commit()
-
 @app.route("/")
 def index():
     if "username" not in session:
@@ -30,41 +29,53 @@ def index():
         sort_query = "rating DESC"
     elif sort_by == "rating_asc":
         sort_query = "rating ASC"
-    elif sort_by == "name_asc":
-        sort_query = "name ASC"
-
-    sql = text(f"SELECT id, name, rating, comment FROM movies WHERE visible=TRUE ORDER BY {sort_query}")
+    
+    sql = text(f"""
+        SELECT m.id, m.name, m.rating, m.comment, 
+               c.id AS comment_id, c.content AS comment_content, 
+               u.username AS comment_username, c.created_at AS comment_created_at, 
+               (SELECT COUNT(*) FROM comment_votes WHERE comment_id = c.id AND vote_type = TRUE) AS likes,
+               (SELECT COUNT(*) FROM comment_votes WHERE comment_id = c.id AND vote_type = FALSE) AS dislikes
+        FROM movies m
+        LEFT JOIN comments c ON m.id = c.movie_id
+        LEFT JOIN users u ON c.user_id = u.id
+        WHERE m.visible = TRUE
+        ORDER BY {sort_query}, c.created_at
+    """)
+    
     result = db.session.execute(sql)
-    movies = result.fetchall()
-
-    movies_with_comments = []
-    for movie in movies:
-        movie_comments_sql = text("""
-            SELECT C.id, C.content, U.username, C.created_at,
-                   (SELECT COUNT(*) FROM comment_votes WHERE comment_id=C.id AND vote_type=TRUE) AS likes,
-                   (SELECT COUNT(*) FROM comment_votes WHERE comment_id=C.id AND vote_type=FALSE) AS dislikes
-            FROM comments C
-            JOIN users U ON C.user_id=U.id
-            WHERE C.movie_id=:movie_id
-            ORDER BY C.created_at
-        """)
-        movie_comments_result = db.session.execute(movie_comments_sql, {"movie_id": movie.id})
-        comments = movie_comments_result.fetchall()
-        movie_with_comments = {
-            "id": movie.id,
-            "name": movie.name,
-            "rating": movie.rating,
-            "comment": movie.comment,
-            "comments": comments
-        }
-        movies_with_comments.append(movie_with_comments)
+    movies_with_comments = {}
+    for row in result:
+        movie_id = row.id
+        if movie_id not in movies_with_comments:
+            movies_with_comments[movie_id] = {
+                "id": row.id,
+                "name": row.name,
+                "rating": row.rating,
+                "comment": row.comment,
+                "comments": []
+            }
+        if row.comment_id:
+            movies_with_comments[movie_id]["comments"].append({
+                "id": row.comment_id,
+                "content": row.comment_content,
+                "username": row.comment_username,
+                "created_at": row.comment_created_at,
+                "likes": row.likes,
+                "dislikes": row.dislikes
+            })
 
     visitor_sql = text("SELECT COUNT(*) FROM visitors")
     visitor_result = db.session.execute(visitor_sql)
     visitor_count = visitor_result.scalar()
 
-    return render_template("index.html", count=len(movies_with_comments), movies=movies_with_comments, sort_by=sort_by, visitor_count=visitor_count)
-
+    return render_template(
+        "index.html", 
+        count=len(movies_with_comments), 
+        movies=movies_with_comments.values(), 
+        sort_by=sort_by, 
+        visitor_count=visitor_count
+    )
 @app.route("/new")
 def new():
     try:
