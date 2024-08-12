@@ -3,7 +3,6 @@ from app import app
 from flask import render_template, request, redirect, session, url_for, flash
 from sqlalchemy import text
 from db import db
-from models import Movie, Comment, User, Visitor, Favorite, CommentVote
 from werkzeug.security import check_password_hash, generate_password_hash
 from users import check_csrf
 
@@ -18,6 +17,7 @@ def before_request():
         visitor_sql = text("INSERT INTO visitors DEFAULT VALUES")
         db.session.execute(visitor_sql)
         db.session.commit()
+
 @app.route("/")
 def index():
     if "username" not in session:
@@ -76,6 +76,7 @@ def index():
         sort_by=sort_by, 
         visitor_count=visitor_count
     )
+
 @app.route("/new")
 def new():
     try:
@@ -83,6 +84,7 @@ def new():
     except Exception as e:
         print(f"Error occurred: {e}")
         return render_template("error.html", message="An error occurred while loading the page.")
+
 @app.route("/send", methods=["POST"])
 def send():
     check_csrf()
@@ -103,24 +105,26 @@ def send():
         flash("Invalid rating.", "error")
         return redirect(url_for("new"))
 
-    existing_movie = Movie.query.filter_by(name=name).first()
+    sql = text("SELECT id, visible FROM movies WHERE name=:name")
+    result = db.session.execute(sql, {"name": name})
+    existing_movie = result.fetchone()
+
     if existing_movie:
         if existing_movie.visible:
             flash("Movie already exists. You can interact with the existing movie.", "error")
             return redirect(url_for("new"))
         else:
-            existing_movie.visible = True
-            existing_movie.rating = rating
-            existing_movie.comment = comment
+            sql = text("UPDATE movies SET visible=TRUE, rating=:rating, comment=:comment WHERE id=:id")
+            db.session.execute(sql, {"rating": rating, "comment": comment, "id": existing_movie.id})
             db.session.commit()
             flash("Movie re-added with new details.", "success")
             return redirect(url_for("index"))
-
-    movie = Movie(name=name, rating=rating, comment=comment, visible=True)
-    db.session.add(movie)
-    db.session.commit()
-    flash("Movie added successfully.", "success")
-    return redirect("/")
+    else:
+        sql = text("INSERT INTO movies (name, rating, comment, visible) VALUES (:name, :rating, :comment, TRUE)")
+        db.session.execute(sql, {"name": name, "rating": rating, "comment": comment})
+        db.session.commit()
+        flash("Movie added successfully.", "success")
+        return redirect("/")
 
 @app.route("/delete_comment/<int:comment_id>", methods=["POST"])
 def delete_comment(comment_id):
@@ -205,7 +209,8 @@ def register():
             error = 'Password must be at least 3 characters long.'
             return render_template("register.html", error=error)
 
-        existing_user = User.query.filter_by(username=username).first()
+        existing_user_sql = text("SELECT id FROM users WHERE username=:username")
+        existing_user = db.session.execute(existing_user_sql, {"username": username}).fetchone()
         if existing_user:
             error = 'Username already exists. Try another username.'
             return render_template("register.html", error=error)
@@ -287,12 +292,14 @@ def add_favorite(movie_id):
         return render_template("error.html", message="User not found")
 
     user_id = user.id
-    existing_favorite = Favorite.query.filter_by(user_id=user_id, movie_id=movie_id).first()
+    existing_favorite_sql = text("SELECT * FROM favorites WHERE user_id=:user_id AND movie_id=:movie_id")
+    existing_favorite = db.session.execute(existing_favorite_sql, {"user_id": user_id, "movie_id": movie_id}).fetchone()
+
     if existing_favorite:
         return render_template("error.html", message="Favorite already exists")
 
-    favorite = Favorite(user_id=user_id, movie_id=movie_id)
-    db.session.add(favorite)
+    sql = text("INSERT INTO favorites (user_id, movie_id) VALUES (:user_id, :movie_id)")
+    db.session.execute(sql, {"user_id": user_id, "movie_id": movie_id})
     db.session.commit()
 
     return redirect(url_for("view_favorites"))
@@ -311,11 +318,9 @@ def remove_favorite(movie_id):
         return render_template("error.html", message="User not found")
 
     user_id = user.id
-
-    favorite = Favorite.query.filter_by(user_id=user_id, movie_id=movie_id).first()
-    if favorite:
-        db.session.delete(favorite)
-        db.session.commit()
+    sql = text("DELETE FROM favorites WHERE user_id=:user_id AND movie_id=:movie_id")
+    db.session.execute(sql, {"user_id": user_id, "movie_id": movie_id})
+    db.session.commit()
 
     return redirect(url_for("view_favorites"))
 
@@ -353,13 +358,15 @@ def vote_comment(comment_id, vote_type):
     user_id = session.get("user_id")
     vote_type = True if vote_type == "like" else False
 
-    existing_vote = CommentVote.query.filter_by(comment_id=comment_id, user_id=user_id).first()
+    existing_vote_sql = text("SELECT id FROM comment_votes WHERE comment_id=:comment_id AND user_id=:user_id")
+    existing_vote = db.session.execute(existing_vote_sql, {"comment_id": comment_id, "user_id": user_id}).fetchone()
+
     if existing_vote:
-        existing_vote.vote_type = vote_type
-        db.session.commit()
+        sql = text("UPDATE comment_votes SET vote_type=:vote_type WHERE comment_id=:comment_id AND user_id=:user_id")
+        db.session.execute(sql, {"vote_type": vote_type, "comment_id": comment_id, "user_id": user_id})
     else:
-        vote = CommentVote(comment_id=comment_id, user_id=user_id, vote_type=vote_type)
-        db.session.add(vote)
-        db.session.commit()
+        sql = text("INSERT INTO comment_votes (comment_id, user_id, vote_type, created_at) VALUES (:comment_id, :user_id, :vote_type, NOW())")
+        db.session.execute(sql, {"comment_id": comment_id, "user_id": user_id, "vote_type": vote_type})
+    db.session.commit()
 
     return redirect(url_for("index"))
